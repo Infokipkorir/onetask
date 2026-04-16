@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OneTasks — Earn By Completing Tasks</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --sidebar-bg: #0f1623;
+    --sidebar-hover: #1c2535;
+    --sidebar-active: #1e3a5f;
+    --accent: #f59e0b;
+    --accent-hover: #d97706;
+    --green: #10b981;
+    --green-light: #d1fae5;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --blue-light: #eff6ff;
+    --purple: #8b5cf6;
+    --orange: #f97316;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+    --border: #e2e8f0;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+    --shadow-lg: 0 10px 40px rgba(0,0,0,.12);
+    --radius: 12px;
+    --sidebar-w: 240px;
+    --header-h: 64px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ─── AUTH PAGE ─── */
+  #auth-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f1623 0%, #1e3a5f 50%, #0f1623 100%);
+    padding: 20px;
+  }
+  .auth-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
+  }
+  .auth-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .auth-logo .logo-icon {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .auth-logo span {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .auth-title { font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+  .auth-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 28px; }
+
+  .auth-tabs {
+    display: flex;
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 24px;
+  }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 8px; border-radius: 8px;
+    cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-muted);
+    transition: all .2s;
+  }
+  .auth-tab.active {
+    background: #fff;
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 12px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-family: 'Sora', sans-serif; font-size: 14px;
+    color: var(--text); outline: none; transition: border-color .2s;
+    background: #fff;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%; padding: 13px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 10px;
+    font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: background .2s, transform .1s;
+    margin-top: 4px;
+  }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn-primary:active { transform: none; }
+  .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+  .auth-msg {
+    margin-top: 14px; padding: 12px 14px;
+    border-radius: 8px; font-size: 13px; font-weight: 500;
+    display: none;
+  }
+  .auth-msg.error { background: #fef2f2; color: var(--red); display: block; }
+  .auth-msg.success { background: #f0fdf4; color: var(--green); display: block; }
+
+  /* ─── APP LAYOUT ─── */
+  #app-page { display: none; min-height: 100vh; }
+
+  .sidebar {
+    position: fixed; left:0; top:0; bottom:0;
+    width: var(--sidebar-w);
+    background: var(--sidebar-bg);
+    display: flex; flex-direction: column;
+    z-index: 100; overflow-y: auto;
+  }
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid #1c2535;
+    flex-shrink: 0;
+  }
+  .sidebar-logo .logo-icon {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .sidebar-logo span {
+    font-size: 17px; font-weight: 700; color: #fff;
+  }
+
+  .sidebar-section-label {
+    padding: 16px 20px 6px;
+    font-size: 10px; font-weight: 600; letter-spacing: .08em;
+    color: #3d4f6b; text-transform: uppercase;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 11px;
+    padding: 10px 20px; border-radius: 0;
+    color: #8097b5; font-size: 13.5px; font-weight: 500;
+    cursor: pointer; transition: all .18s;
+    text-decoration: none; border-left: 3px solid transparent;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--sidebar-hover); color: #c8d8ec; }
+  .nav-item.active {
+    background: var(--sidebar-active); color: #fff;
+    border-left-color: var(--accent);
+  }
+  .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+  .nav-badge {
+    margin-left: auto; background: var(--accent);
+    color: #fff; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+  }
+
+  .sidebar-balance {
+    margin: auto 0 0;
+    padding: 16px 20px;
+    border-top: 1px solid #1c2535;
+    flex-shrink: 0;
+  }
+  .balance-card {
+    background: linear-gradient(135deg, #1e3a5f, #0e2848);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .balance-label { font-size: 11px; color: #8097b5; font-weight: 500; margin-bottom: 4px; }
+  .balance-amount { font-size: 22px; font-weight: 700; color: #fff; font-family: 'DM Mono', monospace; }
+  .balance-sub { font-size: 11px; color: #10b981; margin-top: 2px; font-weight: 500; }
+
+  .main-wrap {
+    margin-left: var(--sidebar-w);
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    height: var(--header-h);
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .topbar-title { font-size: 18px; font-weight: 700; flex: 1; }
+  .topbar-search {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg); border-radius: 10px;
+    padding: 8px 14px; flex: 0 0 260px;
+  }
+  .topbar-search input {
+    background: none; border: none; outline: none;
+    font-family: 'Sora', sans-serif; font-size: 13px; color: var(--text);
+    width: 100%;
+  }
+  .topbar-search input::placeholder { color: var(--text-light); }
+
+  .topbar-user {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+  }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700;
+  }
+  .user-name { font-size: 13px; font-weight: 600; }
+  .logout-btn {
+    padding: 7px 14px; border-radius: 8px;
+    background: none; border: 1.5px solid var(--border);
+    font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600;
+    color: var(--text-muted); cursor: pointer; transition: all .2s;
+  }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  .main-content {
+    flex: 1; padding: 28px;
+    max-width: 1200px;
+  }
+
+  /* ─── DASHBOARD PAGE ─── */
+  #page-dashboard { display: none; }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card);
+    border-radius: var(--radius); padding: 20px 22px;
+    box-shadow: var(--shadow);
+  }
+  .stat-icon {
+    width: 42px; height: 42px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 12px;
+  }
+  .stat-value { font-size: 24px; font-weight: 700; margin-bottom: 4px; font-family: 'DM Mono', monospace; }
+  .stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .stat-trend { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 6px; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title { font-size: 16px; font-weight: 700; }
+  .section-link {
+    font-size: 13px; color: var(--accent); font-weight: 600;
+    cursor: pointer; text-decoration: none;
+  }
+
+  /* ─── TASKS PAGE (Timebucks style) ─── */
+  #page-tasks { display: none; }
+
+  .tasks-header {
+    background: var(--card); border-radius: var(--radius);
+    padding: 20px 24px; margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .tasks-header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .tasks-header h1 { font-size: 20px; font-weight: 700; }
+  .tasks-header p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+
+  .earn-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: #fef3c7; color: #92400e;
+    padding: 8px 14px; border-radius: 10px;
+    font-size: 13px; font-weight: 600;
+  }
+
+  .filter-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .filter-tab {
+    padding: 7px 16px; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: all .18s;
+    border: 1.5px solid var(--border);
+    color: var(--text-muted); background: none;
+    font-family: 'Sora', sans-serif;
+  }
+  .filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-tab.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+
+  .tasks-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .task-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    padding: 18px 20px;
+    display: flex; align-items: center; gap: 18px;
+    box-shadow: var(--shadow);
+    transition: all .2s; cursor: pointer;
+    position: relative; overflow: hidden;
+  }
+  .task-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 20px rgba(0,0,0,.1);
+    transform: translateY(-1px);
+  }
+  .task-card.completed { opacity: .6; }
+  .task-card.completed::after {
+    content: '✓ Completed';
+    position: absolute; top: 10px; right: 12px;
+    font-size: 11px; font-weight: 700; color: var(--green);
+    background: var(--green-light); padding: 3px 8px; border-radius: 6px;
+  }
+
+  .task-icon-wrap {
+    width: 52px; height: 52px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+
+  .task-info { flex: 1; min-width: 0; }
+  .task-title {
+    font-size: 14.5px; font-weight: 700; color: var(--text);
+    margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .task-desc {
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .task-meta {
+    display: flex; align-items: center; gap: 14px; margin-top: 8px; flex-wrap: wrap;
+  }
+  .meta-chip {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--text-muted); font-weight: 500;
+  }
+  .meta-chip span { font-size: 13px; }
+
+  .task-category {
+    font-size: 11px; font-weight: 700; padding: 3px 9px;
+    border-radius: 6px; text-transform: uppercase; letter-spacing: .04em;
+    flex-shrink: 0;
+  }
+
+  .task-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0;
+  }
+  .task-reward {
+    font-size: 20px; font-weight: 800; color: var(--green);
+    font-family: 'DM Mono', monospace; line-height: 1;
+  }
+  .task-reward small { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+
+  .btn-start {
+    padding: 9px 22px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 9px;
+    font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all .18s; white-space: nowrap;
+  }
+  .btn-start:hover { background: var(--accent-hover); transform: scale(1.03); }
+  .btn-start.done {
+    background: var(--green-light); color: var(--green);
+    cursor: default; pointer-events: none;
+  }
+
+  /* ─── TASK MODAL ─── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+    z-index: 200; display: none;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 20px;
+    width: 100%; max-width: 520px;
+    box-shadow: var(--shadow-lg);
+    max-height: 90vh; overflow-y: auto;
+    animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes popIn {
+    from { transform: scale(.9) translateY(10px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .modal-header {
+    padding: 24px 24px 0;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg); border: none; cursor: pointer;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; color: var(--text-muted);
+  }
+  .modal-body { padding: 20px 24px 24px; }
+  .modal-task-icon {
+    width: 64px; height: 64px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 14px;
+  }
+  .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .modal-desc { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+  .modal-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px; margin-bottom: 20px;
+  }
+  .modal-stat {
+    background: var(--bg); border-radius: 10px;
+    padding: 12px 14px; text-align: center;
+  }
+  .modal-stat-val { font-size: 18px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .modal-stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-top: 3px; }
+  .modal-instructions {
+    background: var(--blue-light); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 20px;
+    font-size: 13px; line-height: 1.6; color: #1e40af;
+  }
+  .modal-instructions strong { display: block; margin-bottom: 6px; font-size: 13px; }
+  .proof-input {
+    width: 100%; padding: 11px 14px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    font-family: 'Sora', sans-serif; font-size: 13px;
+    color: var(--text); outline: none; resize: vertical;
+    min-height: 80px; margin-bottom: 14px; transition: border-color .2s;
+  }
+  .proof-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-secondary {
+    flex: 1; padding: 12px;
+    background: var(--bg); color: var(--text);
+    border: none; border-radius: 10px;
+    font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-submit {
+    flex: 2; padding: 12px;
+    background: var(--green); color: #fff;
+    border: none; border-radius: 10px;
+    font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: background .18s;
+  }
+  .btn-submit:hover { background: #059669; }
+  .btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+  /* ─── ADMIN PAGE ─── */
+  #page-admin { display: none; }
+
+  .admin-form-card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px;
+  }
+  .admin-form-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-group-inline { display: flex; flex-direction: column; }
+
+  .admin-tasks-list { display: flex; flex-direction: column; gap: 10px; }
+  .admin-task-row {
+    background: var(--card); border-radius: 10px;
+    padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+  .admin-task-row .task-icon-wrap { width: 40px; height: 40px; font-size: 18px; }
+  .admin-task-info { flex: 1; }
+  .admin-task-info strong { font-size: 14px; }
+  .admin-task-info span { font-size: 12px; color: var(--text-muted); display: block; margin-top: 2px; }
+  .btn-delete {
+    padding: 6px 14px; background: #fef2f2; color: var(--red);
+    border: 1px solid #fecaca; border-radius: 7px;
+    font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: #1e293b; color: #fff; padding: 14px 20px;
+    border-radius: 12px; font-size: 13px; font-weight: 500;
+    box-shadow: var(--shadow-lg); display: none;
+    animation: slideUp .3s ease;
+    max-width: 320px;
+  }
+  .toast.show { display: block; }
+  .toast.success { border-left: 4px solid var(--green); }
+  .toast.error { border-left: 4px solid var(--red); }
+  @keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ─── LOADER ─── */
+  .loader {
+    display: flex; align-items: center; justify-content: center;
+    padding: 60px; color: var(--text-muted); gap: 12px;
+    font-size: 14px;
+  }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2.5px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 14px; }
+  .empty-state h3 { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; }
+
+  /* ─── SETUP BANNER ─── */
+  .setup-banner {
+    background: #fef3c7; border: 1.5px solid #fbbf24;
+    border-radius: var(--radius); padding: 16px 20px;
+    margin-bottom: 20px; font-size: 13px; color: #92400e;
+    display: none;
+  }
+  .setup-banner strong { display: block; margin-bottom: 4px; font-size: 14px; }
+  .setup-banner code {
+    background: #fff7ed; padding: 2px 6px; border-radius: 4px;
+    font-family: 'DM Mono', monospace; font-size: 12px;
+  }
+
+  /* ─── PROFILE PAGE ─── */
+  #page-profile { display: none; }
+  .profile-card {
+    background: var(--card); border-radius: var(--radius);
+    padding: 28px; box-shadow: var(--shadow); margin-bottom: 20px;
+    display: flex; align-items: center; gap: 24px;
+  }
+  .profile-avatar-big {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 700; flex-shrink: 0;
+  }
+  .profile-info h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .profile-info p { color: var(--text-muted); font-size: 13px; }
+
+  /* ─── COMPLETIONS TABLE ─── */
+  .completions-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .completions-table th {
+    text-align: left; padding: 10px 14px;
+    background: var(--bg); color: var(--text-muted);
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; border-bottom: 1.5px solid var(--border);
+  }
+  .completions-table td {
+    padding: 12px 14px; border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .status-badge {
+    padding: 3px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700;
+  }
+  .status-pending { background: #fef3c7; color: #92400e; }
+  .status-approved { background: var(--green-light); color: #065f46; }
+  .status-rejected { background: #fef2f2; color: #991b1b; }
+
+  @media (max-width: 768px) {
+    :root { --sidebar-w: 0px; }
+    .sidebar { transform: translateX(-100%); }
+    .main-wrap { margin-left: 0; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .task-card { flex-wrap: wrap; }
+    .topbar-search { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── AUTH PAGE ─── -->
+<div id="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="logo-icon">⚡</div>
+      <span>OneTasks</span>
+    </div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Sign in to start earning from tasks</div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" onclick="switchTab('register')">Register</div>
+    </div>
+
+    <div id="login-form">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" id="login-email" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="login-password" placeholder="••••••••"/>
+      </div>
+      <button class="btn-primary" onclick="handleLogin()" id="login-btn">Sign In</button>
+      <div class="auth-msg" id="login-msg"></div>
+    </div>
+
+    <div id="register-form" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" class="form-input" id="reg-name" placeholder="John Doe"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-input" id="reg-email" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="reg-password" placeholder="Min 6 characters"/>
+      </div>
+      <button class="btn-primary" onclick="handleRegister()" id="reg-btn">Create Account</button>
+      <div class="auth-msg" id="reg-msg"></div>
+    </div>
+
+    <div style="margin-top:20px;text-align:center">
+      <p style="font-size:12px;color:#94a3b8">
+        Demo: use any email & password to sign up first
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ─── APP PAGE ─── -->
+<div id="app-page">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">⚡</div>
+      <span>OneTasks</span>
+    </div>
+
+    <div class="sidebar-section-label">Main</div>
+    <a class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+    <a class="nav-item" onclick="showPage('tasks')" id="nav-tasks">
+      <span class="nav-icon">✅</span> Tasks
+      <span class="nav-badge" id="tasks-count-badge">—</span>
+    </a>
+
+    <div class="sidebar-section-label">Earn</div>
+    <a class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">🎯</span> Micro Tasks
+    </a>
+    <a class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">📱</span> Install Apps
+    </a>
+    <a class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">🎬</span> Watch Videos
+    </a>
+    <a class="nav-item" onclick="showPage('tasks')">
+      <span class="nav-icon">📋</span> Surveys
+    </a>
+
+    <div class="sidebar-section-label">Account</div>
+    <a class="nav-item" onclick="showPage('profile')" id="nav-profile">
+      <span class="nav-icon">👤</span> My Profile
+    </a>
+    <a class="nav-item" id="nav-admin" onclick="showPage('admin')" style="display:none">
+      <span class="nav-icon">⚙️</span> Admin Panel
+    </a>
+
+    <div class="sidebar-balance">
+      <div class="balance-card">
+        <div class="balance-label">TOTAL EARNINGS</div>
+        <div class="balance-amount" id="sidebar-balance">$0.00</div>
+        <div class="balance-sub">✓ Updated live</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Wrap -->
+  <div class="main-wrap">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-search">
+        <span style="color:#94a3b8;font-size:14px">🔍</span>
+        <input type="text" placeholder="Search tasks..." oninput="filterTasks(this.value)" id="search-input"/>
+      </div>
+      <div class="topbar-user">
+        <div class="user-avatar" id="user-avatar-top">?</div>
+        <div class="user-name" id="user-name-top">Loading...</div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+
+      <!-- Setup Banner -->
+      <div class="setup-banner" id="setup-banner">
+        <strong>⚙️ Supabase Setup Required</strong>
+        Replace <code>YOUR_SUPABASE_URL</code> and <code>YOUR_SUPABASE_ANON_KEY</code> at the top of the script section with your actual Supabase project credentials. Also run the SQL schema provided in the comments.
+      </div>
+
+      <!-- Dashboard Page -->
+      <div id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fef3c7">💰</div>
+            <div class="stat-value" id="stat-earnings">$0.00</div>
+            <div class="stat-label">Total Earned</div>
+            <div class="stat-trend">↑ All time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#d1fae5">✅</div>
+            <div class="stat-value" id="stat-completed">0</div>
+            <div class="stat-label">Tasks Completed</div>
+            <div class="stat-trend">↑ Keep going!</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#ede9fe">⏳</div>
+            <div class="stat-value" id="stat-pending">0</div>
+            <div class="stat-label">Pending Review</div>
+            <div class="stat-trend">↔ Awaiting</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:#fee2e2">🎯</div>
+            <div class="stat-value" id="stat-available">0</div>
+            <div class="stat-label">Tasks Available</div>
+            <div class="stat-trend">↑ Go earn!</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Recent Tasks Available</div>
+          <a class="section-link" onclick="showPage('tasks')">View All →</a>
+        </div>
+        <div id="dashboard-tasks-preview"></div>
+      </div>
+
+      <!-- Tasks Page -->
+      <div id="page-tasks">
+        <div class="tasks-header">
+          <div class="tasks-header-top">
+            <div>
+              <h1>Available Tasks</h1>
+              <p>Complete tasks and earn real money, paid directly to your account</p>
+            </div>
+            <div class="earn-badge">⚡ Earn up to <strong style="margin-left:4px">$5.00</strong> &nbsp;per task</div>
+          </div>
+          <div class="filter-tabs">
+            <button class="filter-tab active" onclick="setFilter('all',this)">All Tasks</button>
+            <button class="filter-tab" onclick="setFilter('social',this)">📱 Social</button>
+            <button class="filter-tab" onclick="setFilter('app',this)">📥 App Install</button>
+            <button class="filter-tab" onclick="setFilter('video',this)">🎬 Videos</button>
+            <button class="filter-tab" onclick="setFilter('survey',this)">📋 Surveys</button>
+            <button class="filter-tab" onclick="setFilter('web',this)">🌐 Web</button>
+          </div>
+        </div>
+        <div id="tasks-list-container">
+          <div class="loader"><div class="spinner"></div> Loading tasks...</div>
+        </div>
+      </div>
+
+      <!-- Profile Page -->
+      <div id="page-profile">
+        <div class="profile-card">
+          <div class="profile-avatar-big" id="profile-avatar">?</div>
+          <div class="profile-info">
+            <h2 id="profile-name">Loading...</h2>
+            <p id="profile-email">—</p>
+            <p style="margin-top:8px;font-size:14px;color:var(--green);font-weight:700" id="profile-balance">$0.00 earned</p>
+          </div>
+        </div>
+
+        <div class="section-header" style="margin-bottom:14px">
+          <div class="section-title">My Completions</div>
+        </div>
+        <div style="background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden">
+          <table class="completions-table" id="completions-table">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Category</th>
+                <th>Reward</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="completions-tbody">
+              <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No completions yet</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Admin Page -->
+      <div id="page-admin">
+        <div class="admin-form-card">
+          <div class="admin-form-title">➕ Add New Task</div>
+          <div class="form-row">
+            <div class="form-group-inline">
+              <label class="form-label">Task Title *</label>
+              <input type="text" class="form-input" id="a-title" placeholder="e.g. Follow us on Twitter"/>
+            </div>
+            <div class="form-group-inline">
+              <label class="form-label">Category *</label>
+              <select class="form-input" id="a-category">
+                <option value="social">📱 Social Media</option>
+                <option value="app">📥 App Install</option>
+                <option value="video">🎬 Video</option>
+                <option value="survey">📋 Survey</option>
+                <option value="web">🌐 Web</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description *</label>
+            <input type="text" class="form-input" id="a-desc" placeholder="What the user needs to do"/>
+          </div>
+          <div class="form-row-3">
+            <div class="form-group-inline">
+              <label class="form-label">Reward ($) *</label>
+              <input type="number" class="form-input" id="a-reward" placeholder="0.25" step="0.01" min="0.01"/>
+            </div>
+            <div class="form-group-inline">
+              <label class="form-label">Avg. Time (min)</label>
+              <input type="number" class="form-input" id="a-time" placeholder="5" min="1"/>
+            </div>
+            <div class="form-group-inline">
+              <label class="form-label">Max Completions</label>
+              <input type="number" class="form-input" id="a-max" placeholder="100" min="1"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group-inline">
+              <label class="form-label">Task URL (optional)</label>
+              <input type="url" class="form-input" id="a-url" placeholder="https://..."/>
+            </div>
+            <div class="form-group-inline">
+              <label class="form-label">Instructions for user</label>
+              <input type="text" class="form-input" id="a-instructions" placeholder="Proof needed (e.g. screenshot, username)"/>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="addTask()" style="width:auto;padding:11px 28px;margin-top:4px">
+            Add Task
+          </button>
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">All Tasks</div>
+        </div>
+        <div class="admin-tasks-list" id="admin-tasks-list">
+          <div class="loader"><div class="spinner"></div> Loading...</div>
+        </div>
+
+        <div style="margin-top:28px" id="admin-completions-section">
+          <div class="section-header"><div class="section-title">Pending Approvals</div></div>
+          <div style="background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden">
+            <table class="completions-table">
+              <thead>
+                <tr>
+                  <th>User</th><th>Task</th><th>Proof</th><th>Reward</th><th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="admin-completions-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No pending approvals</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-content -->
+  </div><!-- /main-wrap -->
+</div><!-- /app-page -->
+
+<!-- ─── TASK MODAL ─── -->
+<div class="modal-overlay" id="task-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-task-icon" id="modal-icon"></div>
+      <div id="modal-category-badge" class="task-category" style="margin-bottom:10px;display:inline-block"></div>
+      <div class="modal-title" id="modal-title"></div>
+      <div class="modal-desc" id="modal-desc"></div>
+      <div class="modal-stats">
+        <div class="modal-stat">
+          <div class="modal-stat-val" id="modal-reward" style="color:var(--green)"></div>
+          <div class="modal-stat-label">Reward</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-val" id="modal-time"></div>
+          <div class="modal-stat-label">Est. Time</div>
+        </div>
+        <div class="modal-stat">
+          <div class="modal-stat-val" id="modal-completions"></div>
+          <div class="modal-stat-label">Completed</div>
+        </div>
+      </div>
+      <div class="modal-instructions" id="modal-instructions"></div>
+      <div id="modal-url-section" style="margin-bottom:14px;display:none">
+        <a id="modal-url-link" target="_blank" rel="noopener"
+          style="display:inline-flex;align-items:center;gap:6px;color:var(--blue);font-size:13px;font-weight:600;text-decoration:none">
+          🔗 Open Task Link
+        </a>
+      </div>
+      <label class="form-label">Your Proof / Submission</label>
+      <textarea class="proof-input" id="modal-proof" placeholder="Paste your proof here: screenshot URL, username, description of what you did..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn-submit" id="modal-submit-btn" onclick="submitTask()">Submit & Earn</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  SUPABASE CONFIGURATION — REPLACE THESE WITH YOUR OWN
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+/*
+════════════════════════════════════════════════
+  SUPABASE SQL SCHEMA — Run this in your Supabase
+  SQL Editor before using the app:
+════════════════════════════════════════════════
+
+-- Enable UUID extension
+create extension if not exists "uuid-ossp";
+
+-- Profiles table
+create table public.profiles (
+  id uuid references auth.users on delete cascade primary key,
+  username text,
+  email text,
+  balance numeric(10,2) default 0,
+  is_admin boolean default false,
+  created_at timestamptz default now()
+);
+alter table public.profiles enable row level security;
+create policy "Users can view own profile" on public.profiles for select using (auth.uid() = id);
+create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
+create policy "Admin full access" on public.profiles for all using (true);
+
+-- Tasks table
+create table public.tasks (
+  id uuid default uuid_generate_v4() primary key,
+  title text not null,
+  description text,
+  category text default 'social',
+  reward numeric(10,2) not null,
+  avg_time_mins int default 5,
+  max_completions int default 100,
+  completion_count int default 0,
+  task_url text,
+  instructions text,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+alter table public.tasks enable row level security;
+create policy "Anyone can view active tasks" on public.tasks for select using (is_active = true);
+create policy "Admin can manage tasks" on public.tasks for all using (true);
+
+-- Completions table
+create table public.completions (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users on delete cascade,
+  task_id uuid references public.tasks on delete cascade,
+  proof text,
+  status text default 'pending',
+  reward numeric(10,2),
+  created_at timestamptz default now(),
+  unique(user_id, task_id)
+);
+alter table public.completions enable row level security;
+create policy "Users can insert own completions" on public.completions for insert with check (auth.uid() = user_id);
+create policy "Users can view own completions" on public.completions for select using (auth.uid() = user_id);
+create policy "Admin can manage completions" on public.completions for all using (true);
+
+-- Function to handle new user
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.profiles (id, email, username)
+  values (new.id, new.email, split_part(new.email,'@',1));
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Sample tasks (optional)
+insert into public.tasks (title, description, category, reward, avg_time_mins, instructions) values
+  ('Follow us on Twitter', 'Follow our official Twitter account @OneTasks and like our pinned tweet', 'social', 0.25, 2, 'Provide your Twitter username after following'),
+  ('Install Chrome Extension', 'Install our browser extension and keep it active for 24 hours', 'app', 1.50, 5, 'Paste your browser ID from the extension settings page'),
+  ('Watch Product Demo Video', 'Watch our 3-minute product demo video on YouTube until completion', 'video', 0.15, 4, 'Paste the time you finished watching'),
+  ('Complete User Survey', 'Answer 10 quick questions about your online habits', 'survey', 0.75, 10, 'Submit the confirmation code shown after completion'),
+  ('Visit Our Sponsor Website', 'Visit the sponsor landing page and stay for 30 seconds', 'web', 0.05, 1, 'Describe one product you saw on the page'),
+  ('Post on Instagram', 'Create a post mentioning @OneTasks with hashtag #EarnWithOneTasks', 'social', 2.00, 8, 'Provide your Instagram post URL'),
+  ('Rate Our App', 'Give our app a 5-star rating on the App Store or Google Play', 'app', 0.50, 3, 'Provide your review username'),
+  ('Share YouTube Video', 'Share our latest YouTube video to your social media', 'video', 0.30, 3, 'Paste the link where you shared it');
+
+════════════════════════════════════════════════
+*/
+
+// ═══════════════════════════════════════════════════════
+//  APP INITIALIZATION
+// ═══════════════════════════════════════════════════════
+const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+let supabase = null;
+let currentUser = null;
+let currentProfile = null;
+let allTasks = [];
+let completedTaskIds = new Set();
+let activeFilter = 'all';
+let currentTask = null;
+
+if (isConfigured) {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  initApp();
+} else {
+  // Demo mode — works without Supabase
+  showDemoMode();
+}
+
+async function initApp() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadUserAndApp();
+  } else {
+    showPage_Auth();
+  }
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN') {
+      currentUser = session.user;
+      await loadUserAndApp();
+    } else if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      currentProfile = null;
+      showPage_Auth();
+    }
+  });
+}
+
+// ── DEMO MODE (no Supabase configured) ──
+function showDemoMode() {
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'flex';
+  document.getElementById('setup-banner').style.display = 'block';
+  document.getElementById('user-avatar-top').textContent = 'D';
+  document.getElementById('user-name-top').textContent = 'Demo User';
+  document.getElementById('sidebar-balance').textContent = '$3.45';
+  document.getElementById('stat-earnings').textContent = '$3.45';
+  document.getElementById('stat-completed').textContent = '7';
+  document.getElementById('stat-pending').textContent = '2';
+  document.getElementById('stat-available').textContent = '8';
+  document.getElementById('profile-name').textContent = 'Demo User';
+  document.getElementById('profile-email').textContent = 'demo@onetasks.com';
+  document.getElementById('profile-balance').textContent = '$3.45 earned';
+  document.getElementById('profile-avatar').textContent = 'D';
+  const demoTasks = getDemoTasks();
+  allTasks = demoTasks;
+  document.getElementById('tasks-count-badge').textContent = demoTasks.length;
+  renderTasks(demoTasks);
+  renderDashboardPreview(demoTasks.slice(0,4));
+  showPage('tasks');
+}
+
+function getDemoTasks() {
+  return [
+    { id:'1', title:'Follow us on Twitter', description:'Follow our official Twitter account @OneTasks and like our pinned tweet to earn instantly.', category:'social', reward:0.25, avg_time_mins:2, completion_count:142, max_completions:500, instructions:'Provide your Twitter username after following', task_url:'https://twitter.com' },
+    { id:'2', title:'Install Chrome Extension', description:'Install our browser extension and keep it active for 24 hours. Earn automatically once verified.', category:'app', reward:1.50, avg_time_mins:5, completion_count:89, max_completions:200, instructions:'Paste your browser ID from the extension settings page', task_url:'' },
+    { id:'3', title:'Watch Product Demo Video', description:'Watch our 3-minute product demo on YouTube until the very end without skipping.', category:'video', reward:0.15, avg_time_mins:4, completion_count:310, max_completions:1000, instructions:'Submit the completion code shown at end of video', task_url:'https://youtube.com' },
+    { id:'4', title:'Complete User Survey', description:'Answer 10 quick questions about your online shopping habits. Takes about 10 minutes.', category:'survey', reward:0.75, avg_time_mins:10, completion_count:55, max_completions:300, instructions:'Submit the confirmation code shown after survey', task_url:'' },
+    { id:'5', title:'Visit Our Sponsor Website', description:'Visit the sponsor landing page, browse for 30 seconds and check out their featured products.', category:'web', reward:0.05, avg_time_mins:1, completion_count:891, max_completions:5000, instructions:'Describe one product you saw on the page', task_url:'https://example.com' },
+    { id:'6', title:'Post on Instagram', description:'Create a post mentioning @OneTasks with the hashtag #EarnWithOneTasks to earn this reward.', category:'social', reward:2.00, avg_time_mins:8, completion_count:31, max_completions:100, instructions:'Provide a direct link to your Instagram post', task_url:'' },
+    { id:'7', title:'Rate Our App', description:'Give our mobile app a 5-star rating on the App Store or Google Play with a short review.', category:'app', reward:0.50, avg_time_mins:3, completion_count:204, max_completions:1000, instructions:'Provide your reviewer username', task_url:'' },
+    { id:'8', title:'Share YouTube Video', description:'Share our latest YouTube video to any of your social media profiles or messaging apps.', category:'video', reward:0.30, avg_time_mins:3, completion_count:178, max_completions:500, instructions:'Paste the link or screenshot of where you shared it', task_url:'https://youtube.com' },
+  ];
+}
+
+// ── AUTH HELPERS ──
+function showPage_Auth() {
+  document.getElementById('auth-page').style.display = 'flex';
+  document.getElementById('app-page').style.display = 'none';
+}
+
+function switchTab(tab) {
+  document.getElementById('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+  document.querySelectorAll('.auth-tab').forEach((el, i) => {
+    el.classList.toggle('active', (tab === 'login' && i === 0) || (tab === 'register' && i === 1));
+  });
+}
+
+async function handleLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const msg = document.getElementById('login-msg');
+  msg.className = 'auth-msg'; msg.style.display = 'none';
+  if (!email || !pw) { showAuthMsg(msg, 'error', 'Please fill all fields'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) showAuthMsg(msg, 'error', error.message);
+}
+
+async function handleRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  const btn = document.getElementById('reg-btn');
+  const msg = document.getElementById('reg-msg');
+  msg.className = 'auth-msg'; msg.style.display = 'none';
+  if (!name || !email || !pw) { showAuthMsg(msg, 'error', 'Please fill all fields'); return; }
+  if (pw.length < 6) { showAuthMsg(msg, 'error', 'Password must be at least 6 characters'); return; }
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  const { data, error } = await supabase.auth.signUp({ email, password: pw, options: { data: { username: name } } });
+  btn.disabled = false; btn.textContent = 'Create Account';
+  if (error) { showAuthMsg(msg, 'error', error.message); return; }
+  if (data.user && !data.session) {
+    showAuthMsg(msg, 'success', '✓ Account created! Check your email to confirm.');
+  }
+}
+
+function showAuthMsg(el, type, msg) {
+  el.className = `auth-msg ${type}`; el.textContent = msg;
+}
+
+async function handleLogout() {
+  if (supabase) await supabase.auth.signOut();
+  else { document.getElementById('auth-page').style.display = 'flex'; document.getElementById('app-page').style.display = 'none'; }
+}
+
+// ── LOAD USER & APP ──
+async function loadUserAndApp() {
+  document.getElementById('auth-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'flex';
+
+  // Load profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
+  currentProfile = profile;
+
+  const name = profile?.username || currentUser.email?.split('@')[0] || 'User';
+  const initial = name.charAt(0).toUpperCase();
+  document.getElementById('user-avatar-top').textContent = initial;
+  document.getElementById('user-name-top').textContent = name;
+  document.getElementById('profile-avatar').textContent = initial;
+  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-email').textContent = currentUser.email;
+
+  const balance = profile?.balance ?? 0;
+  document.getElementById('sidebar-balance').textContent = `$${balance.toFixed(2)}`;
+  document.getElementById('profile-balance').textContent = `$${balance.toFixed(2)} earned`;
+  document.getElementById('stat-earnings').textContent = `$${balance.toFixed(2)}`;
+
+  if (profile?.is_admin) {
+    document.getElementById('nav-admin').style.display = 'flex';
+  }
+
+  await loadTasks();
+  await loadMyCompletions();
+  updateStats();
+  showPage('tasks');
+}
+
+// ── TASKS ──
+async function loadTasks() {
+  const { data: tasks, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    document.getElementById('tasks-list-container').innerHTML =
+      `<div class="empty-state"><div class="icon">⚠️</div><h3>Error loading tasks</h3><p>${error.message}</p></div>`;
+    return;
+  }
+  allTasks = tasks || [];
+  document.getElementById('tasks-count-badge').textContent = allTasks.length;
+  document.getElementById('stat-available').textContent = allTasks.length;
+  renderTasks(getFilteredTasks());
+  renderDashboardPreview(allTasks.slice(0,4));
+  if (currentProfile?.is_admin) renderAdminTasks();
+}
+
+async function loadMyCompletions() {
+  if (!currentUser) return;
+  const { data } = await supabase
+    .from('completions')
+    .select('*, tasks(title, category, reward)')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (!data) return;
+  completedTaskIds = new Set(data.map(c => c.task_id));
+  const completed = data.filter(c => c.status === 'approved').length;
+  const pending = data.filter(c => c.status === 'pending').length;
+  document.getElementById('stat-completed').textContent = completed;
+  document.getElementById('stat-pending').textContent = pending;
+
+  const tbody = document.getElementById('completions-tbody');
+  if (!data.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No completions yet — go complete some tasks!</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(c => `
+    <tr>
+      <td style="font-weight:600">${c.tasks?.title || 'Unknown Task'}</td>
+      <td>${getCategoryLabel(c.tasks?.category)}</td>
+      <td style="color:var(--green);font-weight:700;font-family:'DM Mono',monospace">$${(c.reward||0).toFixed(2)}</td>
+      <td><span class="status-badge status-${c.status}">${c.status}</span></td>
+      <td style="color:var(--text-muted)">${new Date(c.created_at).toLocaleDateString()}</td>
+    </tr>
+  `).join('');
+}
+
+function updateStats() {
+  // already set above
+}
+
+// ── RENDER TASKS (Timebucks style) ──
+function renderTasks(tasks) {
+  const container = document.getElementById('tasks-list-container');
+  if (!tasks.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><h3>No tasks found</h3><p>Try a different filter or check back soon</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="tasks-list">${tasks.map(t => taskCardHTML(t)).join('')}</div>`;
+}
+
+function renderDashboardPreview(tasks) {
+  document.getElementById('dashboard-tasks-preview').innerHTML =
+    `<div class="tasks-list">${tasks.map(t => taskCardHTML(t)).join('')}</div>`;
+}
+
+function taskCardHTML(task) {
+  const done = completedTaskIds.has(task.id);
+  const { icon, bg, textColor, label } = getCategoryStyle(task.category);
+  const completionPct = Math.min(Math.round((task.completion_count / task.max_completions) * 100), 100);
+
+  return `
+  <div class="task-card${done ? ' completed' : ''}" onclick="openTask('${task.id}')">
+    <div class="task-icon-wrap" style="background:${bg}">${icon}</div>
+    <div class="task-info">
+      <div class="task-title">${task.title}</div>
+      <div class="task-desc">${task.description || ''}</div>
+      <div class="task-meta">
+        <div class="meta-chip"><span>⏱</span> ~${task.avg_time_mins || 5} min</div>
+        <div class="meta-chip"><span>👥</span> ${task.completion_count || 0} done</div>
+        <div class="meta-chip"><span>📊</span> ${completionPct}% filled</div>
+        <div class="task-category" style="background:${bg};color:${textColor}">${label}</div>
+      </div>
+    </div>
+    <div class="task-right">
+      <div class="task-reward">$${Number(task.reward).toFixed(2)}<br/><small>reward</small></div>
+      <button class="btn-start${done ? ' done' : ''}" onclick="event.stopPropagation();openTask('${task.id}')">
+        ${done ? '✓ Done' : 'Start Task'}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── FILTER ──
+function setFilter(filter, el) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  const searchVal = document.getElementById('search-input')?.value || '';
+  renderTasks(getFilteredTasks(searchVal));
+}
+
+function filterTasks(q) {
+  renderTasks(getFilteredTasks(q));
+}
+
+function getFilteredTasks(q = '') {
+  let tasks = allTasks;
+  if (activeFilter !== 'all') tasks = tasks.filter(t => t.category === activeFilter);
+  if (q) tasks = tasks.filter(t =>
+    t.title.toLowerCase().includes(q.toLowerCase()) ||
+    (t.description||'').toLowerCase().includes(q.toLowerCase())
+  );
+  return tasks;
+}
+
+// ── TASK MODAL ──
+function openTask(id) {
+  const task = allTasks.find(t => t.id === id);
+  if (!task) return;
+  currentTask = task;
+  const done = completedTaskIds.has(id);
+  const { icon, bg, textColor, label } = getCategoryStyle(task.category);
+
+  document.getElementById('modal-icon').textContent = icon;
+  document.getElementById('modal-icon').style.background = bg;
+  document.getElementById('modal-category-badge').textContent = label;
+  document.getElementById('modal-category-badge').style.cssText = `background:${bg};color:${textColor};margin-bottom:10px;display:inline-block`;
+  document.getElementById('modal-title').textContent = task.title;
+  document.getElementById('modal-desc').textContent = task.description || '';
+  document.getElementById('modal-reward').textContent = `$${Number(task.reward).toFixed(2)}`;
+  document.getElementById('modal-time').textContent = `~${task.avg_time_mins || 5}m`;
+  document.getElementById('modal-completions').textContent = task.completion_count || 0;
+
+  const instr = task.instructions || 'Complete the task and submit your proof below.';
+  document.getElementById('modal-instructions').innerHTML = `<strong>📋 Instructions</strong>${instr}`;
+
+  const urlSection = document.getElementById('modal-url-section');
+  if (task.task_url) {
+    urlSection.style.display = 'block';
+    document.getElementById('modal-url-link').href = task.task_url;
+  } else { urlSection.style.display = 'none'; }
+
+  document.getElementById('modal-proof').value = '';
+  const submitBtn = document.getElementById('modal-submit-btn');
+  if (done) {
+    submitBtn.textContent = '✓ Already Submitted';
+    submitBtn.disabled = true;
+    submitBtn.style.background = 'var(--green)';
+  } else {
+    submitBtn.textContent = 'Submit & Earn';
+    submitBtn.disabled = false;
+    submitBtn.style.background = '';
+  }
+
+  document.getElementById('task-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('task-modal').classList.remove('open');
+  currentTask = null;
+}
+
+async function submitTask() {
+  if (!currentTask) return;
+  const proof = document.getElementById('modal-proof').value.trim();
+  if (!proof) { showToast('Please provide proof of completion', 'error'); return; }
+
+  const btn = document.getElementById('modal-submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting...';
+
+  if (!isConfigured) {
+    // Demo mode simulation
+    await new Promise(r => setTimeout(r, 1000));
+    completedTaskIds.add(currentTask.id);
+    closeModal();
+    showToast(`✓ Task submitted! $${Number(currentTask.reward).toFixed(2)} pending approval`, 'success');
+    renderTasks(getFilteredTasks());
+    return;
+  }
+
+  const { error } = await supabase.from('completions').insert({
+    user_id: currentUser.id,
+    task_id: currentTask.id,
+    proof: proof,
+    status: 'pending',
+    reward: currentTask.reward
+  });
+
+  btn.disabled = false; btn.textContent = 'Submit & Earn';
+
+  if (error) {
+    if (error.code === '23505') showToast('You already submitted this task', 'error');
+    else showToast('Error: ' + error.message, 'error');
+    return;
+  }
+
+  completedTaskIds.add(currentTask.id);
+  closeModal();
+  showToast(`✓ Submitted! $${Number(currentTask.reward).toFixed(2)} pending approval`, 'success');
+  renderTasks(getFilteredTasks());
+  await loadMyCompletions();
+}
+
+// ── ADMIN ──
+async function renderAdminTasks() {
+  const { data: tasks } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+  const container = document.getElementById('admin-tasks-list');
+  if (!tasks?.length) { container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><h3>No tasks yet</h3><p>Add your first task above</p></div>'; return; }
+  container.innerHTML = tasks.map(t => {
+    const { icon, bg } = getCategoryStyle(t.category);
+    return `<div class="admin-task-row">
+      <div class="task-icon-wrap" style="background:${bg}">${icon}</div>
+      <div class="admin-task-info">
+        <strong>${t.title}</strong>
+        <span>$${Number(t.reward).toFixed(2)} · ${t.completion_count}/${t.max_completions} completed · ${t.is_active ? '✓ Active' : '✗ Inactive'}</span>
+      </div>
+      <button class="btn-delete" onclick="deleteTask('${t.id}')">Delete</button>
+    </div>`;
+  }).join('');
+
+  // Load pending completions
+  const { data: pending } = await supabase
+    .from('completions')
+    .select('*, profiles(username,email), tasks(title,reward)')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
+
+  const tbody = document.getElementById('admin-completions-tbody');
+  if (!pending?.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No pending approvals 🎉</td></tr>'; return; }
+  tbody.innerHTML = pending.map(c => `
+    <tr>
+      <td>${c.profiles?.username || c.profiles?.email || 'Unknown'}</td>
+      <td>${c.tasks?.title || '—'}</td>
+      <td style="max-width:200px;font-size:12px;color:var(--text-muted)">${c.proof || '—'}</td>
+      <td style="color:var(--green);font-weight:700">$${Number(c.reward||0).toFixed(2)}</td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="reviewCompletion('${c.id}','${c.user_id}',${c.reward},'approved')" style="padding:5px 10px;background:#d1fae5;color:#065f46;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">✓ Approve</button>
+        <button onclick="reviewCompletion('${c.id}','${c.user_id}',${c.reward},'rejected')" style="padding:5px 10px;background:#fef2f2;color:#991b1b;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">✗ Reject</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function addTask() {
+  const title = document.getElementById('a-title').value.trim();
+  const desc = document.getElementById('a-desc').value.trim();
+  const category = document.getElementById('a-category').value;
+  const reward = parseFloat(document.getElementById('a-reward').value);
+  const time = parseInt(document.getElementById('a-time').value) || 5;
+  const max = parseInt(document.getElementById('a-max').value) || 100;
+  const url = document.getElementById('a-url').value.trim();
+  const instructions = document.getElementById('a-instructions').value.trim();
+
+  if (!title || !desc || !reward) { showToast('Please fill required fields', 'error'); return; }
+
+  const { error } = await supabase.from('tasks').insert({
+    title, description: desc, category, reward, avg_time_mins: time,
+    max_completions: max, task_url: url || null, instructions: instructions || null
+  });
+
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('✓ Task added!', 'success');
+  ['a-title','a-desc','a-reward','a-time','a-max','a-url','a-instructions'].forEach(id => document.getElementById(id).value = '');
+  await loadTasks();
+  renderAdminTasks();
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  await supabase.from('tasks').update({ is_active: false }).eq('id', id);
+  showToast('Task removed', 'success');
+  await loadTasks();
+  renderAdminTasks();
+}
+
+async function reviewCompletion(completionId, userId, reward, status) {
+  const { error } = await supabase.from('completions').update({ status }).eq('id', completionId);
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+
+  if (status === 'approved') {
+    // Update user balance
+    const { data: profile } = await supabase.from('profiles').select('balance').eq('id', userId).single();
+    const newBalance = (profile?.balance || 0) + Number(reward);
+    await supabase.from('profiles').update({ balance: newBalance }).eq('id', userId);
+    // Update task completion count
+    showToast(`✓ Approved & $${Number(reward).toFixed(2)} credited!`, 'success');
+  } else {
+    showToast('Submission rejected', 'error');
+  }
+  renderAdminTasks();
+}
+
+// ── NAVIGATION ──
+function showPage(page) {
+  ['dashboard','tasks','profile','admin'].forEach(p => {
+    document.getElementById(`page-${p}`).style.display = 'none';
+    const nav = document.getElementById(`nav-${p}`);
+    if (nav) nav.classList.remove('active');
+  });
+  document.getElementById(`page-${page}`).style.display = 'block';
+  const nav = document.getElementById(`nav-${page}`);
+  if (nav) nav.classList.add('active');
+
+  const titles = { dashboard: 'Dashboard', tasks: 'Available Tasks', profile: 'My Profile', admin: 'Admin Panel' };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+
+  if (page === 'tasks') renderTasks(getFilteredTasks());
+  if (page === 'admin' && currentProfile?.is_admin) renderAdminTasks();
+}
+
+// ── CATEGORY HELPERS ──
+function getCategoryStyle(cat) {
+  const map = {
+    social:  { icon:'📱', bg:'#ede9fe', textColor:'#5b21b6', label:'Social' },
+    app:     { icon:'📥', bg:'#dbeafe', textColor:'#1d4ed8', label:'App Install' },
+    video:   { icon:'🎬', bg:'#fce7f3', textColor:'#9d174d', label:'Video' },
+    survey:  { icon:'📋', bg:'#d1fae5', textColor:'#065f46', label:'Survey' },
+    web:     { icon:'🌐', bg:'#fef3c7', textColor:'#92400e', label:'Web' },
+  };
+  return map[cat] || { icon:'✅', bg:'#f1f5f9', textColor:'#475569', label:'Task' };
+}
+
+function getCategoryLabel(cat) {
+  return getCategoryStyle(cat).label;
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 3500);
+}
+
+// Close modal on overlay click
+document.getElementById('task-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
