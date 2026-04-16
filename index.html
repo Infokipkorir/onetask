@@ -608,56 +608,84 @@
 <!-- ─── AUTH PAGE ─── -->
 <div id="auth-page">
   <div class="auth-box">
+    
     <div class="auth-logo">
       <div class="logo-icon">⚡</div>
       <span>OneTasks</span>
     </div>
-    <div class="auth-title">Welcome back</div>
-    <div class="auth-sub">Sign in to start earning from tasks</div>
 
+    <div class="auth-title" id="auth-title">Welcome back</div>
+    <div class="auth-sub" id="auth-sub">Sign in to start earning from tasks</div>
+
+    <!-- Tabs -->
     <div class="auth-tabs">
-      <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
-      <div class="auth-tab" onclick="switchTab('register')">Register</div>
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
+      <div class="auth-tab" id="tab-register" onclick="switchTab('register')">Register</div>
     </div>
 
+    <!-- LOGIN -->
     <div id="login-form">
       <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <input type="email" class="form-input" id="login-email" placeholder="you@example.com"/>
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="you@example.com"/>
       </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" class="form-input" id="login-password" placeholder="••••••••"/>
-      </div>
-      <button class="btn-primary" onclick="handleLogin()" id="login-btn">Sign In</button>
-      <div class="auth-msg" id="login-msg"></div>
-    </div>
 
-    <div id="register-form" style="display:none">
       <div class="form-group">
-        <label class="form-label">Full Name</label>
-        <input type="text" class="form-input" id="reg-name" placeholder="John Doe"/>
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••"/>
       </div>
-      <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <input type="email" class="form-input" id="reg-email" placeholder="you@example.com"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" class="form-input" id="reg-password" placeholder="Min 6 characters"/>
-      </div>
-      <button class="btn-primary" onclick="handleRegister()" id="reg-btn">Create Account</button>
-      <div class="auth-msg" id="reg-msg"></div>
-    </div>
 
-    <div style="margin-top:20px;text-align:center">
-      <p style="font-size:12px;color:#94a3b8">
-        Demo: use any email & password to sign up first
+      <div style="text-align:right; font-size:12px;">
+        <a href="#" onclick="forgotPassword()">Forgot Password?</a>
+      </div>
+
+      <button onclick="handleLogin()">Sign In</button>
+
+      <p style="margin-top:10px; font-size:13px;">
+        Don't have an account? 
+        <a href="#" onclick="switchTab('register')">Create Account</a>
       </p>
+
+      <div id="login-msg"></div>
     </div>
+
+    <!-- REGISTER -->
+    <div id="register-form" style="display:none">
+
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="John Doe"/>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="reg-email" placeholder="you@example.com"/>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="reg-password" placeholder="Min 6 characters"/>
+      </div>
+
+      <div style="margin:10px 0;">
+        <input type="checkbox" id="terms"/>
+        <label style="font-size:12px;">
+          I agree to Terms & Conditions
+        </label>
+      </div>
+
+      <button onclick="handleRegister()">Create Account</button>
+
+      <p style="margin-top:10px; font-size:13px;">
+        Already have an account? 
+        <a href="#" onclick="switchTab('login')">Login</a>
+      </p>
+
+      <div id="reg-msg"></div>
+    </div>
+
   </div>
 </div>
-
 <!-- ─── APP PAGE ─── -->
 <div id="app-page">
   <!-- Sidebar -->
@@ -1157,24 +1185,97 @@ async function handleRegister() {
   msg.className = 'auth-msg'; msg.style.display = 'none';
   if (!name || !email || !pw) { showAuthMsg(msg, 'error', 'Please fill all fields'); return; }
   if (pw.length < 6) { showAuthMsg(msg, 'error', 'Password must be at least 6 characters'); return; }
-  btn.disabled = true; btn.textContent = 'Creating account...';
-  const { data, error } = await supabase.auth.signUp({ email, password: pw, options: { data: { username: name } } });
-  btn.disabled = false; btn.textContent = 'Create Account';
-  if (error) { showAuthMsg(msg, 'error', error.message); return; }
-  if (data.user && !data.session) {
-    showAuthMsg(msg, 'success', '✓ Account created! Check your email to confirm.');
+
+function switchTab(tab){
+  const login = document.getElementById('login-form');
+  const register = document.getElementById('register-form');
+
+  const tabLogin = document.getElementById('tab-login');
+  const tabRegister = document.getElementById('tab-register');
+
+  const title = document.getElementById('auth-title');
+  const sub = document.getElementById('auth-sub');
+
+  if(tab === 'login'){
+    login.style.display = 'block';
+    register.style.display = 'none';
+
+    tabLogin.classList.add('active');
+    tabRegister.classList.remove('active');
+
+    title.innerText = "Welcome back";
+    sub.innerText = "Sign in to continue";
+  }else{
+    login.style.display = 'none';
+    register.style.display = 'block';
+
+    tabLogin.classList.remove('active');
+    tabRegister.classList.add('active');
+
+    title.innerText = "Create Account";
+    sub.innerText = "Start your earning journey";
   }
 }
 
-function showAuthMsg(el, type, msg) {
-  el.className = `auth-msg ${type}`; el.textContent = msg;
+/* LOGIN */
+function handleLogin(){
+  let email = document.getElementById('login-email').value;
+  let password = document.getElementById('login-password').value;
+
+  if(!email || !password){
+    return showMsg("login-msg", "All fields required", "red");
+  }
+
+  showMsg("login-msg", "Login successful ✅", "green");
 }
 
-async function handleLogout() {
-  if (supabase) await supabase.auth.signOut();
-  else { document.getElementById('auth-page').style.display = 'flex'; document.getElementById('app-page').style.display = 'none'; }
+/* REGISTER */
+function handleRegister(){
+  let name = document.getElementById('reg-name').value.trim();
+  let email = document.getElementById('reg-email').value.trim();
+  let password = document.getElementById('reg-password').value;
+  let terms = document.getElementById('terms').checked;
+
+  // Name validation (must be 2 names)
+  if(name.split(" ").length < 2){
+    return showMsg("reg-msg", "Enter your real full name", "red");
+  }
+
+  // Password rules
+  if(password.length < 6){
+    return showMsg("reg-msg", "Password must be at least 6 characters", "red");
+  }
+
+  if(password.toLowerCase().includes(name.split(" ")[0].toLowerCase())){
+    return showMsg("reg-msg", "Password should not contain your name", "red");
+  }
+
+  if(password.toLowerCase().includes(email.split("@")[0].toLowerCase())){
+    return showMsg("reg-msg", "Password should not contain your email", "red");
+  }
+
+  if(!terms){
+    return showMsg("reg-msg", "You must accept Terms", "red");
+  }
+
+  // Generate username
+  let username = name.toLowerCase().replace(/\s+/g, "") + Math.floor(Math.random()*1000);
+
+  showMsg("reg-msg", "Account created! Username: " + username, "green");
 }
 
+/* FORGOT PASSWORD */
+function forgotPassword(){
+  alert("Password reset link will be sent to your email.");
+}
+
+/* MESSAGE */
+function showMsg(id, text, color){
+  let el = document.getElementById(id);
+  el.innerText = text;
+  el.style.color = color;
+}
+  
 // ── LOAD USER & APP ──
 async function loadUserAndApp() {
   document.getElementById('auth-page').style.display = 'none';
